@@ -1,178 +1,114 @@
 # Steganography-Based Secure File Transfer System
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![Security](https://img.shields.io/badge/Encryption-AES--256--GCM-blue?style=flat-square)](https://en.wikipedia.org/wiki/Galois/Counter_Mode)
-[![KDF](https://img.shields.io/badge/Key_Derivation-PBKDF2--HMAC--SHA256-orange?style=flat-square)](https://en.wikipedia.org/wiki/PBKDF2)
-[![Steganography](https://img.shields.io/badge/Steganography-LSB_Image_%26_Audio-green?style=flat-square)]()
-
-A robust, enterprise-grade Python application for concealing confidential data inside digital carrier media (images and audio files). The system integrates **AES-256-GCM authenticated encryption** with **Least Significant Bit (LSB) steganography**, enabling secure data transmission through open or untrusted channels without alerting observers to the presence of covert data.
+A Python application for securely hiding encrypted data inside image and audio carrier files. The system combines **AES-256-GCM authenticated encryption** with **Least Significant Bit (LSB) steganography** so you can transmit secret messages or files inside innocent-looking media.
 
 ---
 
-## 📌 Executive Summary & Threat Model
+## Features
 
-Traditional encryption protects data confidentiality, but ciphertext is overtly visible—marking it as a high-value target for interception. **Steganography** complements cryptography by providing **steganographic security (covertness)**: obfuscating the very *existence* of the secret message.
-
-### Core Guarantees:
-* **Confidentiality & Authenticity**: AES-256-GCM ensures that even if a carrier is analyzed, the hidden payload cannot be decrypted or tampered with without detection.
-* **Integrity Protection**: Authenticated tag verification rejects altered carriers or incorrect passphrases instantly.
-* **Lossless Container Enforcement**: Automatically transforms lossy carrier inputs (e.g., JPEG, MP3) into lossless carrier formats (PNG, WAV) upon embedding, ensuring payload immunity against compression artifacts.
+- **AES-256-GCM Encryption**: Encrypts plaintext messages or files with a password before embedding.
+- **PBKDF2 Key Derivation**: Uses SHA-256 with 480,000 iterations to derive strong encryption keys from user passwords.
+- **Dual Media Support**: Embeds payloads into images (`PNG`, `JPEG`, `JPG`) and audio files (`WAV`, `MP3`).
+- **Lossless Persistence**: Automatically outputs stego files in lossless formats (`.png` for images, `.wav` for audio) to prevent data corruption from compression.
+- **Real-Time Capacity Check**: Calculates available storage space in selected carrier files before embedding.
+- **Simple Graphical Interface**: Multi-tab Tkinter interface for encoding and decoding workflows.
 
 ---
 
-## 🏗 System Architecture
+## Project Structure
 
 ```
-                                    +-----------------------+
-                                    |    User Passphrase    |
-                                    +-----------+-----------+
-                                                |
-                                                v
-+------------------+   Plaintext    +-----------+-----------+   Encrypted Container   +-----------------------+   Stego File
-|  Secret Payload  |--------------->|   crypto_engine.py    |------------------------>|    stego_engine.py    |-------------> (.png / .wav)
-| (Text or File)   |                |  (AES-256-GCM KDF)    |                         |    (LSB Embedding)    |
-+------------------+                +-----------------------+                         +-----------+-----------+
-                                                                                                  ^
-                                                                                                  | Carrier Media
-                                                                                       +----------+----------+
-                                                                                       | (PNG/JPG/WAV/MP3)   |
-                                                                                       +---------------------+
+Cyber mini Project/
+├── main.py              # Application entry point
+├── gui.py               # Tkinter desktop interface
+├── crypto_engine.py     # AES-256-GCM encryption & PBKDF2 key derivation
+├── stego_engine.py      # LSB image and audio steganography engine
+└── requirements.txt     # Python dependencies
 ```
-
-### Component Breakdown
-
-| Module | Responsibility | Key Dependencies |
-| :--- | :--- | :--- |
-| `main.py` | Application entry point & runtime initialization | Standard Library |
-| `gui.py` | Multi-tab GUI (`ttk.Notebook`), real-time capacity calculator, file dialog handlers | `tkinter`, `ttk` |
-| `crypto_engine.py` | PBKDF2 Key Derivation (480k rounds), AES-256-GCM payload structure packing/unpacking | `cryptography` |
-| `stego_engine.py` | LSB bitwise operations, PCM audio decoding, image array manipulation, capacity checks | `opencv-python`, `numpy`, `miniaudio`, `wave` |
 
 ---
 
-## 🔐 Cryptographic Specifications
+## Cryptography & Container Layout
 
-### 1. Key Derivation Function (KDF)
-To resist GPU-accelerated offline brute-force dictionary attacks:
-* **Algorithm**: PBKDF2 with HMAC-SHA256
-* **Salt Size**: 16 bytes (randomly generated via `os.urandom`)
-* **Iterations**: `480,000` (exceeds OWASP recommendations)
-* **Derived Key Length**: 256 bits (32 bytes)
+### Key Derivation
+- **Algorithm**: PBKDF2-HMAC-SHA256
+- **Salt**: 16 random bytes (`os.urandom`)
+- **Iterations**: 480,000
+- **Key Length**: 32 bytes (256-bit)
 
-### 2. Encrypted Container Wire Format
-The binary blob generated by `crypto_engine.encrypt_payload` follows a strict layout:
+### Container Structure
+The encrypted blob is packed in the following order before being hidden in carrier media:
 
 ```
-+------------------+------------------+-----------------------+--------------------+------------------------+-------------------+
-|  Salt (16 Bytes) |  Nonce (12 Bytes)| Filename Len (2 Bytes)| Original Filename  |     Payload Data       |  GCM Tag (16B)    |
-+------------------+------------------+-----------------------+--------------------+------------------------+-------------------+
-|<------------------------- Plain Header -------------------->|<----------------- AES-256-GCM Ciphertext ----------------->|
+[ 16B Salt ] [ 12B Nonce ] [ 2B Filename Length ] [ Original Filename ] [ Ciphertext ] [ 16B Auth Tag ]
 ```
-
-* **Filename Len**: 16-bit big-endian unsigned integer (`>H`).
-* **Special Filename Marker**: Text messages use metadata `__TEXT_PAYLOAD__` to dynamically render inside the GUI text area upon extraction.
 
 ---
 
-## 🎨 Steganography Specifications
+## Steganography Details
 
-### 1. Image Steganography (LSB)
-* **Carrier Formats**: PNG, JPEG, JPG
-* **Target Output**: Forced to `.png` (lossless format)
-* **Mechanism**: 
-  * The image array is flattened into a 1D uint8 array using NumPy.
-  * A 32-bit big-endian header containing payload length is prepended: `[4 Bytes Length Header] + [Encrypted Blob]`.
-  * Bits are packed into the least significant bit of each color channel byte:
-    $$\text{pixel\_byte} = (\text{pixel\_byte} \ \& \ \text{0xFE}) \ | \ \text{bit}$$
+### 1. Image Steganography
+- Carrier image bytes are converted to a 1D array.
+- A 4-byte header containing payload length is prepended to the data.
+- Payload bits replace the lowest bit of each pixel color channel byte.
+- Saved as lossless `.png`.
 
-$$\text{Capacity}_{\text{Image}} = \left( \frac{\text{Width} \times \text{Height} \times \text{Channels}}{8} \right) - 4 \text{ bytes}$$
-
-### 2. Audio Steganography (LSB)
-* **Carrier Formats**: WAV, MP3
-* **Target Output**: Forced to `.wav` (lossless PCM format)
-* **Mechanism**:
-  * MP3 files are dynamically decoded into raw 16-bit PCM signed audio samples via `miniaudio`.
-  * Standard WAV files are parsed via native `wave`.
-  * Bits are embedded sequentially into the lowest bit of PCM sample bytes.
-
-$$\text{Capacity}_{\text{Audio}} = \left( \frac{\text{Total PCM Bytes}}{8} \right) - 4 \text{ bytes}$$
+### 2. Audio Steganography
+- MP3 files are decoded into raw 16-bit PCM audio samples, while WAV files are parsed directly.
+- Payload length header (4 bytes) and data bits replace the lowest bit of each PCM sample byte.
+- Saved as lossless `.wav`.
 
 ---
 
-## 🚀 Installation & Setup
+## Installation
 
 ### Prerequisites
-* **Python 3.9+** installed on your system.
-* **Tkinter** installed (included with Python on Windows/macOS; Linux users may require `sudo apt-get install python3-tk`).
+- **Python 3.9+**
+- **Tkinter** (pre-installed with Python on Windows/macOS)
 
-### Step-by-Step Installation
+### Setup
 
-1. **Clone the Repository**
+1. **Clone the repository**
    ```bash
    git clone https://github.com/Pegasus707/Steganography-Based-Secure-File-Transfer-System.git
    cd Steganography-Based-Secure-File-Transfer-System
    ```
 
-2. **Set Up a Virtual Environment**
+2. **Create and activate a virtual environment**
    ```bash
    python3 -m venv venv
-   source venv/bin/activate  # On Windows use: venv\Scripts\activate
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Install Dependencies**
+3. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Launch the Application**
+4. **Run the application**
    ```bash
    python main.py
    ```
 
 ---
 
-## 📖 Operating Manual
+## How to Use
 
-### 📥 Encoding Data (Hide & Encrypt)
+### Hide & Encrypt (Encoding)
+1. Open the **Encode & Hide** tab.
+2. Choose **Image** or **Audio** and browse for a carrier file.
+3. Select payload type (**Text Message** or **File**).
+4. Enter an encryption password.
+5. Click **Encrypt & Embed Data** and save your output file (`.png` or `.wav`).
 
-1. Launch `python main.py` and select the **Encode & Hide** tab.
-2. Select your **Carrier Medium**:
-   * Choose `Image` or `Audio`.
-   * Click **Browse** to select your cover file. The system will display the maximum byte capacity.
-3. Select your **Secret Payload**:
-   * `Text Message`: Type or paste plaintext secret messages into the input area.
-   * `File`: Click **Browse** to select any document, binary, image, or archive.
-4. Enter a strong **Encryption Password**.
-5. Click **Encrypt & Embed Data** and choose a save location (`.png` for images, `.wav` for audio).
-
-### 📤 Decoding Data (Extract & Decrypt)
-
-1. Select the **Extract & Decrypt** tab.
-2. Select the stego carrier file (`.png` or `.wav`).
-3. Enter the exact **Decryption Password** used during encoding.
-4. Click **Extract & Decrypt**:
-   * Text payloads will automatically display in the text console.
-   * File payloads will prompt you to select a destination directory to restore the original file with intact filename metadata.
+### Extract & Decrypt (Decoding)
+1. Open the **Extract & Decrypt** tab.
+2. Select your stego `.png` or `.wav` file.
+3. Enter the decryption password used during encoding.
+4. Click **Extract & Decrypt** to view text or save the recovered file.
 
 ---
 
-## 🔒 Security Best Practices & Vulnerabilities
+## License
 
-| Design Decision | Threat Mitigated |
-| :--- | :--- |
-| **AES-256-GCM** | Protects payload confidentiality and prevents carrier payload manipulation (Tamper Resistance). |
-| **Random Salt & Nonce** | Prevents rainbow table attacks and guarantees distinct ciphertext output for identical carriers/messages. |
-| **Format Conversion (PNG/WAV)** | Eliminates LSB bit-corruption caused by lossy spatial/frequency compression algorithm re-encoding. |
-
-### Known Steganalytic Limitations (Senior Dev Note):
-* **LSB Vulnerability to Statistical Analysis**: Standard LSB modification alters sample histogram distribution. Advanced steganalysis techniques (such as Chi-Square analysis or RS Steganalysis) can detect LSB anomalies if payload size approaches maximum carrier capacity.
-* **Future Enhancement Roadmap**:
-  1. Implementation of **Matrix Encoding / F5 Algorithm** to minimize bit modification rate ($d$-bit change efficiency).
-  2. **Spread Spectrum Steganography** for audio carriers to resist steganalysis.
-  3. Support for multi-layer carrier password key wrapping (Argon2id).
-
----
-
-## 📜 License & Compliance
-
-Distributed under the MIT License. See `LICENSE` for details. Designed for educational, forensic, and secure communication research purposes.
+Distributed under the MIT License.
