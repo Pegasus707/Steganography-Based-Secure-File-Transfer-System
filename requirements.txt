@@ -1,0 +1,7 @@
+cffi==2.1.1
+cryptography==50.0.0
+miniaudio==1.71
+numpy==2.5.2
+opencv-python==5.0.0.93
+pillow==12.3.0
+pycparser==3.0

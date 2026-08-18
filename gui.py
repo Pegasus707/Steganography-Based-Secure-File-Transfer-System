@@ -10,8 +10,8 @@ class StegoApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Steganography File Transfer System")
-        self.geometry("620x540")
-        self.minsize(580, 500)
+        self.geometry("640x550")
+        self.minsize(600, 520)
 
         notebook = ttk.Notebook(self)
         notebook.pack(fill="both", expand=True, padx=10, pady=10)
@@ -33,13 +33,12 @@ class StegoApp(tk.Tk):
         frame = ttk.Frame(parent, padding=12)
         frame.pack(fill="both", expand=True)
 
-        # Carrier Type & Path
         ttk.Label(frame, text="1. Select Carrier Medium & File:", font=("Helvetica", 10, "bold")).pack(anchor="w")
         row_type = ttk.Frame(frame)
         row_type.pack(fill="x", pady=(2, 2))
         self.enc_carrier_mode = tk.StringVar(value="Image")
-        ttk.Radiobutton(row_type, text="PNG Image", variable=self.enc_carrier_mode, value="Image", command=self._reset_carrier_view).pack(side="left")
-        ttk.Radiobutton(row_type, text="WAV Audio", variable=self.enc_carrier_mode, value="Audio", command=self._reset_carrier_view).pack(side="left", padx=10)
+        ttk.Radiobutton(row_type, text="Image (PNG / JPG / JPEG)", variable=self.enc_carrier_mode, value="Image", command=self._reset_carrier_view).pack(side="left")
+        ttk.Radiobutton(row_type, text="Audio (WAV / MP3)", variable=self.enc_carrier_mode, value="Audio", command=self._reset_carrier_view).pack(side="left", padx=10)
 
         row_cpath = ttk.Frame(frame)
         row_cpath.pack(fill="x", pady=2)
@@ -67,7 +66,7 @@ class StegoApp(tk.Tk):
         ttk.Button(self.enc_file_frame, text="Browse", command=self._browse_payload_file).pack(side="right", padx=(5, 0))
 
         # Password
-        ttk.Label(frame, text="3. Password:", font=("Helvetica", 10, "bold")).pack(anchor="w", pady=(6, 2))
+        ttk.Label(frame, text="3. Encryption Password:", font=("Helvetica", 10, "bold")).pack(anchor="w", pady=(6, 2))
         self.enc_pwd = ttk.Entry(frame, show="*")
         self.enc_pwd.pack(fill="x", pady=2)
 
@@ -80,12 +79,12 @@ class StegoApp(tk.Tk):
         frame = ttk.Frame(parent, padding=12)
         frame.pack(fill="both", expand=True)
 
-        ttk.Label(frame, text="1. Select Stego File:", font=("Helvetica", 10, "bold")).pack(anchor="w")
+        ttk.Label(frame, text="1. Select Stego Container File:", font=("Helvetica", 10, "bold")).pack(anchor="w")
         row_type = ttk.Frame(frame)
         row_type.pack(fill="x", pady=(2, 2))
         self.dec_carrier_mode = tk.StringVar(value="Image")
-        ttk.Radiobutton(row_type, text="PNG Image", variable=self.dec_carrier_mode, value="Image").pack(side="left")
-        ttk.Radiobutton(row_type, text="WAV Audio", variable=self.dec_carrier_mode, value="Audio").pack(side="left", padx=10)
+        ttk.Radiobutton(row_type, text="Stego Image (.png)", variable=self.dec_carrier_mode, value="Image").pack(side="left")
+        ttk.Radiobutton(row_type, text="Stego Audio (.wav)", variable=self.dec_carrier_mode, value="Audio").pack(side="left", padx=10)
 
         row_spath = ttk.Frame(frame)
         row_spath.pack(fill="x", pady=2)
@@ -93,7 +92,7 @@ class StegoApp(tk.Tk):
         ttk.Entry(row_spath, textvariable=self.dec_stego_path).pack(side="left", fill="x", expand=True)
         ttk.Button(row_spath, text="Browse", command=self._browse_decode_carrier).pack(side="right", padx=(5, 0))
 
-        ttk.Label(frame, text="2. Password:", font=("Helvetica", 10, "bold")).pack(anchor="w", pady=(6, 2))
+        ttk.Label(frame, text="2. Decryption Password:", font=("Helvetica", 10, "bold")).pack(anchor="w", pady=(6, 2))
         self.dec_pwd = ttk.Entry(frame, show="*")
         self.dec_pwd.pack(fill="x", pady=2)
 
@@ -120,7 +119,7 @@ class StegoApp(tk.Tk):
 
     def _browse_encode_carrier(self):
         is_img = self.enc_carrier_mode.get() == "Image"
-        ftypes = [("PNG Images", "*.png")] if is_img else [("WAV Audio", "*.wav")]
+        ftypes = [("Image Files", "*.png *.jpg *.jpeg")] if is_img else [("Audio Files", "*.wav *.mp3")]
         path = filedialog.askopenfilename(filetypes=ftypes)
         if path:
             self.enc_carrier_path.set(path)
@@ -128,7 +127,7 @@ class StegoApp(tk.Tk):
                 cap = stego.get_image_capacity(path) if is_img else stego.get_audio_capacity(path)
                 self.capacity_lbl.config(text=f"Carrier Capacity: {cap:,} bytes (~{cap / 1024:.1f} KB)")
             except Exception as e:
-                self.capacity_lbl.config(text=f"Error: {e}")
+                self.capacity_lbl.config(text=f"Error reading file: {e}")
 
     def _browse_payload_file(self):
         path = filedialog.askopenfilename(filetypes=[("All Files", "*.*")])
@@ -137,7 +136,7 @@ class StegoApp(tk.Tk):
 
     def _browse_decode_carrier(self):
         is_img = self.dec_carrier_mode.get() == "Image"
-        ftypes = [("PNG Images", "*.png")] if is_img else [("WAV Audio", "*.wav")]
+        ftypes = [("Stego PNG Image", "*.png")] if is_img else [("Stego WAV Audio", "*.wav")]
         path = filedialog.askopenfilename(filetypes=ftypes)
         if path:
             self.dec_stego_path.set(path)
@@ -170,8 +169,9 @@ class StegoApp(tk.Tk):
                 data = f.read()
             fname = os.path.basename(p_path)
 
+        # Output must be lossless format
         def_ext = ".png" if is_img else ".wav"
-        ftypes = [("PNG Image", "*.png")] if is_img else [("WAV Audio", "*.wav")]
+        ftypes = [("Lossless PNG Image", "*.png")] if is_img else [("Lossless WAV Audio", "*.wav")]
         out_path = filedialog.asksaveasfilename(defaultextension=def_ext, filetypes=ftypes)
         if not out_path:
             return
@@ -179,10 +179,10 @@ class StegoApp(tk.Tk):
         try:
             encrypted_blob = crypto.encrypt_payload(data, fname, pwd)
             if is_img:
-                stego.hide_in_image(carrier, encrypted_blob, out_path)
+                saved_to = stego.hide_in_image(carrier, encrypted_blob, out_path)
             else:
-                stego.hide_in_audio(carrier, encrypted_blob, out_path)
-            messagebox.showinfo("Success", f"Data embedded and saved to:\n{out_path}")
+                saved_to = stego.hide_in_audio(carrier, encrypted_blob, out_path)
+            messagebox.showinfo("Success", f"Data embedded and saved losslessly to:\n{saved_to}")
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
@@ -192,7 +192,7 @@ class StegoApp(tk.Tk):
         is_img = self.dec_carrier_mode.get() == "Image"
 
         if not stego_path or not os.path.exists(stego_path):
-            messagebox.showerror("Error", "Select a valid stego file.")
+            messagebox.showerror("Error", "Select a valid stego container file.")
             return
         if not pwd:
             messagebox.showerror("Error", "Enter the decryption password.")
