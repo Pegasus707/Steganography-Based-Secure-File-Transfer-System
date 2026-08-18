@@ -7,14 +7,13 @@ A Python application for securely hiding encrypted data inside image and audio c
 ## Application Screenshots
 
 <p align="center">
-  <img src="<img width="752" height="690" alt="Screenshot 2026-08-18 at 7 51 58 PM" src="https://github.com/user-attachments/assets/806b2888-b2f8-4994-884d-67714f58f524" />
-" alt="Encode Tab Demo" width="600" />
+  <img src="https://github.com/user-attachments/assets/806b2888-b2f8-4994-884d-67714f58f524" alt="Encode & Hide Interface" width="600" />
   <br>
   <em>Encode & Hide Interface</em>
 </p>
 
 <p align="center">
-  <img src="assets/decode_demo.png" alt="Decode Tab Demo" width="600" />
+  <img src="https://github.com/user-attachments/assets/3f2dc5e1-56df-448e-a5a6-64ab61e90653" alt="Extract & Decrypt Interface" width="600" />
   <br>
   <em>Extract & Decrypt Interface</em>
 </p>
