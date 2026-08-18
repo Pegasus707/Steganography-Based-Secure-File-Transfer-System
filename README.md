@@ -4,6 +4,22 @@ A Python application for securely hiding encrypted data inside image and audio c
 
 ---
 
+## Application Screenshots
+
+<p align="center">
+  <img src="assets/encode_demo.png" alt="Encode Tab Demo" width="600" />
+  <br>
+  <em>Encode & Hide Interface</em>
+</p>
+
+<p align="center">
+  <img src="assets/decode_demo.png" alt="Decode Tab Demo" width="600" />
+  <br>
+  <em>Extract & Decrypt Interface</em>
+</p>
+
+---
+
 ## Features
 
 - **AES-256-GCM Encryption**: Encrypts plaintext messages or files with a password before embedding.
@@ -23,6 +39,7 @@ Cyber mini Project/
 ├── gui.py               # Tkinter desktop interface
 ├── crypto_engine.py     # AES-256-GCM encryption & PBKDF2 key derivation
 ├── stego_engine.py      # LSB image and audio steganography engine
+├── assets/              # Screenshots and demo media
 └── requirements.txt     # Python dependencies
 ```
 
