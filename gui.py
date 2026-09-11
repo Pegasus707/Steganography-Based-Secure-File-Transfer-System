@@ -110,8 +110,13 @@ class StegoApp(tk.Tk):
 
         # Password
         ttk.Label(frame, text="3. Encryption Password:", font=("Helvetica", 10, "bold")).pack(anchor="w", pady=(4, 2))
-        self.enc_pwd = ttk.Entry(frame, show="*")
+        self.enc_pwd_var = tk.StringVar()
+        self.enc_pwd_var.trace_add("write", self._on_enc_password_change)
+        self.enc_pwd = ttk.Entry(frame, textvariable=self.enc_pwd_var, show="*")
         self.enc_pwd.pack(fill="x", pady=2)
+
+        self.enc_pwd_strength_lbl = ttk.Label(frame, text="", font=("Helvetica", 8, "italic"))
+        self.enc_pwd_strength_lbl.pack(anchor="w", pady=(0, 4))
 
         ttk.Button(frame, text="Encrypt & Embed Data", command=self._execute_encode).pack(pady=10)
 
@@ -155,6 +160,11 @@ class StegoApp(tk.Tk):
     # -----------------------------
     # EVENT HANDLERS
     # -----------------------------
+    def _on_enc_password_change(self, *args):
+        pwd = self.enc_pwd_var.get()
+        label, color = crypto.check_password_strength(pwd)
+        self.enc_pwd_strength_lbl.config(text=label, foreground=color)
+
     def _toggle_payload_view(self):
         if self.enc_payload_type.get() == "Text":
             self.enc_file_frame.pack_forget()
@@ -240,6 +250,14 @@ class StegoApp(tk.Tk):
         if not pwd:
             messagebox.showerror("Error", "Password cannot be empty.")
             return
+
+        if len(pwd) < 6:
+            proceed = messagebox.askyesno(
+                "Weak Password Warning",
+                "The encryption password is weak (< 6 characters) and vulnerable to brute-force attacks.\n\nDo you wish to proceed anyway?"
+            )
+            if not proceed:
+                return
 
         if self.enc_payload_type.get() == "Text":
             raw_text = self.enc_text_box.get("1.0", tk.END).strip()
