@@ -1,0 +1,214 @@
+================================================================================
+  STEGANOGRAPHY-BASED SECURE FILE TRANSFER SYSTEM
+  PPT PRESENTATION SCRIPT & SPEAKING ROLES (6 TEAM MEMBERS)
+================================================================================
+
+Total Slides: 12
+Total Team Members: 6
+Allocation: Exactly 2 Slides Per Person (~1.5 to 2 minutes each)
+Presentation Time: Approx. 10 - 12 Minutes
+
+--------------------------------------------------------------------------------
+👤 PERSON 1: INTRODUCTION & PROJECT MOTIVATION LEAD
+--------------------------------------------------------------------------------
+SLIDES ASSIGNED: Slide 1 & Slide 2
+
+[SLIDE 1: Title Slide & Team Introduction]
+• What to say:
+  "Good morning/afternoon Ma'am and everyone. Today, our team is presenting our 
+   Cyber Security Mini Project titled 'Steganography-Based Secure File Transfer System'.
+   Our team members are [Member 1], [Member 2], [Member 3], [Member 4], [Member 5], 
+   and myself, [Your Name]. In this project, we address critical network threats like 
+   packet sniffing and IP snooping by combining authenticated AES encryption with 
+   Least Significant Bit steganography."
+
+[SLIDE 2: Project Overview & Core Philosophy]
+• What to say:
+  "To understand why we built this, let's look at the core problem with traditional 
+   encryption. Traditional encryption converts plaintext into ciphertext. While this 
+   protects the confidentiality of the message, the ciphertext itself is completely 
+   conspicuous. When transmitted over a network, an attacker using a packet sniffer 
+   or a firewall performing Deep Packet Inspection immediately notices high-entropy 
+   scrambled data. This flags suspicion, drawing unwanted attention and targeting the 
+   channel for surveillance or throttling.
+   Our project solves this by introducing a dual-layer defense: first, we encrypt the 
+   data using AES-256-GCM; second, we conceal that encrypted data inside ordinary 
+   images and audio files using steganography. To any network monitor or eavesdropper, 
+   it looks like an ordinary, harmless picture or song being shared, granting complete 
+   plausible deniability."
+
+🔄 HANDOVER TO PERSON 2:
+  "Now, I would like to hand over to [Person 2], who will walk us through the specific 
+   network threats we identified and our overall architectural pipeline."
+
+
+--------------------------------------------------------------------------------
+👤 PERSON 2: THREAT ANALYST & SYSTEM PIPELINE LEAD
+--------------------------------------------------------------------------------
+SLIDES ASSIGNED: Slide 3 & Slide 4
+
+[SLIDE 3: Problem Formulation: Network Threats]
+• What to say:
+  "Thank you, [Person 1]. In our threat modeling, we focused on four primary network-level 
+   vulnerabilities:
+   1. Packet Sniffing: Attackers operating tools like Wireshark or tcpdump on shared 
+      LANs capture packets in promiscuous mode. Unencrypted files and plaintext messages 
+      are captured and reconstructed effortlessly.
+   2. IP Snooping & Traffic Analysis: Even if content is encrypted, adversaries monitor 
+      IP headers, transmission timestamps, and payload sizes to profile communicating parties.
+   3. DPI & Cryptographic Censorship: Firewalls and monitoring nodes actively inspect 
+      packet entropy. Obvious ciphertext blobs are often flagged, quarantined, or blocked.
+   4. Man-in-the-Middle (MitM) Tampering: Threat actors can alter, truncate, or flip bits 
+      in transit. Without integrity controls, a recipient could accept modified data."
+
+[SLIDE 4: System Framework & Operational Pipeline]
+• What to say:
+  "To address these threats, our system implements an end-to-end 6-step lifecycle:
+   - Step 1: The sender inputs their secret message or file, and our real-time entropy 
+     engine checks the password strength.
+   - Step 2: PBKDF2-HMAC-SHA256 stretches the password across 480,000 iterations with a 
+     random 16-byte salt to derive a master 256-bit key.
+   - Step 3: The payload and metadata are encrypted using AES-GCM with a fresh 12-byte nonce, 
+     generating a 16-byte authentication tag.
+   - Step 4: The binary container is embedded into the Least Significant Bits of the chosen 
+     image or audio carrier.
+   - Step 5: The carrier file is exported strictly losslessly (.png or .wav) and transmitted.
+   - Step 6: The recipient extracts the container, validates the cryptographic tag, and 
+     restores the original file."
+
+🔄 HANDOVER TO PERSON 3:
+  "Next, [Person 3] will explain how our data is cryptographically structured and introduce 
+   the three core security mechanisms of our project."
+
+
+--------------------------------------------------------------------------------
+👤 PERSON 3: DATA ARCHITECT & SECURITY MECHANISMS COORDINATOR
+--------------------------------------------------------------------------------
+SLIDES ASSIGNED: Slide 5 & Slide 6
+
+[SLIDE 5: Cryptographic Container Binary Architecture]
+• What to say:
+  "Thank you, [Person 2]. Before data is embedded into any carrier, it is packed into a 
+   rigorous binary container with six fields:
+   1. 16-Byte Salt: Generated via os.urandom(16) to eliminate rainbow-table precomputations.
+   2. 12-Byte Nonce: Unique initialization vector per encryption to prevent replay attacks.
+   3. 2-Byte Filename Length: Big-endian integer specifying metadata size.
+   4. N-Byte Original Filename: Encrypted inside the payload so file types are never leaked.
+   5. Variable Ciphertext: The AES-256-GCM encrypted payload.
+   6. 16-Byte Authentication Tag: The GHASH tag used to verify zero tampering.
+   This layout ensures the container is completely self-contained. The receiver only needs 
+   the shared password to reconstruct everything."
+
+[SLIDE 6: The Three Core Security Mechanisms (Overview)]
+• What to say:
+  "To fulfill our evaluation requirements, our architecture strictly enforces THREE 
+   independent security mechanisms:
+   - Mechanism 1: Authenticated Cryptographic Confidentiality — Powered by AES-256-GCM 
+     and high-iteration PBKDF2 key stretching, backed by real-time client-side password 
+     strength validation.
+   - Mechanism 2: Covert Concealment (Anti-Sniffing) — Implemented via dual-medium LSB 
+     steganography in 24-bit images and 16-bit PCM audio, providing plausible deniability.
+   - Mechanism 3: Cryptographic Integrity & Tamper Resistance — Enforced by the 16-byte 
+     AEAD authentication tag, providing automated detection of any in-transit packet alteration."
+
+🔄 HANDOVER TO PERSON 4:
+  "Now, [Person 4] will take us into a technical deep-dive of Mechanism 1 and Mechanism 2."
+
+
+--------------------------------------------------------------------------------
+👤 PERSON 4: CRYPTOGRAPHY & STEGANOGRAPHY SPECIALIST
+--------------------------------------------------------------------------------
+SLIDES ASSIGNED: Slide 7 & Slide 8
+
+[SLIDE 7: Mechanism 1 Deep-Dive: Cryptographic Confidentiality]
+• What to say:
+  "Thank you, [Person 3]. Under Mechanism 1, we use AES in Galois/Counter Mode (GCM) with 
+   a 256-bit key length. A 256-bit key space offers 2^256 possible keys, making brute-force 
+   cracking impossible against any modern supercomputer.
+   To transform user-supplied passwords into cryptographic keys, we use PBKDF2-HMAC-SHA256 
+   with 480,000 iterations. This heavy key stretching intentionally increases the 
+   computational cost for an attacker, defeating GPU-accelerated dictionary attacks.
+   Furthermore, in our GUI, we developed a real-time Password Strength Meter that 
+   actively evaluates character entropy (uppercase, lowercase, numbers, and symbols) as 
+   the user types, warning them if a password is too weak to ensure optimal key generation."
+
+[SLIDE 8: Mechanism 2 Deep-Dive: Covert Steganography]
+• What to say:
+  "Under Mechanism 2, we implement Least Significant Bit (LSB) steganography across two 
+   media types:
+   - Image Steganography: We load 24-bit RGB images and modify only the 0th bit of each 
+     color channel byte. Because this alters pixel luminosity by at most 1 in 256—or 0.39%—the 
+     change is completely imperceptible to the human eye.
+   - Audio Steganography: We decode audio into 16-bit linear PCM samples. The payload bits 
+     replace the least significant bit of the audio samples, producing noise that is entirely 
+     beneath the human auditory threshold.
+   Crucially, our system enforces lossless output (.png and .wav). Formats like JPEG or MP3 
+   use lossy compression that would permanently destroy hidden bits. By using lossless 
+   containers, data integrity is preserved 100%."
+
+🔄 HANDOVER TO PERSON 5:
+  "Now, [Person 5] will explain Mechanism 3 and show how our identified threats map directly 
+   to these preventions."
+
+
+--------------------------------------------------------------------------------
+👤 PERSON 5: INTEGRITY SPECIALIST & THREAT MAPPING LEAD
+--------------------------------------------------------------------------------
+SLIDES ASSIGNED: Slide 9 & Slide 10
+
+[SLIDE 9: Mechanism 3 Deep-Dive: Integrity & Tamper Verification]
+• What to say:
+  "Thank you, [Person 4]. Mechanism 3 addresses active network tampering and Man-in-the-Middle 
+   attacks. If an adversary intercepts our stego carrier and tampers with, truncates, or 
+   flips even a single bit in the payload, how do we know?
+   This is solved by AES-GCM's AEAD property. During encryption, a GHASH polynomial 
+   authenticator calculates an immutable 16-byte (128-bit) authentication tag over the 
+   ciphertext and nonce.
+   When the recipient decodes the carrier, the engine recomputes this tag before releasing 
+   any decrypted data. If a single bit was modified in transit, the tags fail to match, 
+   raising an immediate InvalidTag exception and aborting decryption. This fail-closed 
+   behavior ensures corrupted or malicious payloads are never accepted or executed."
+
+[SLIDE 10: Evaluation Matrix: Threats vs Preventions vs Mechanisms]
+• What to say:
+  "On this slide, we present our complete Evaluation Matrix that maps every threat directly 
+   to our preventions and mechanisms:
+   1. Packet Sniffing is prevented by Mechanism 2 (LSB Steganography), because Wireshark 
+      captures only show harmless media files.
+   2. IP Snooping & Traffic Analysis is prevented by Mechanism 2, eliminating suspicious 
+      ciphertext signatures.
+   3. Unauthorized Data Exposure is prevented by Mechanism 1 (AES-256-GCM + PBKDF2), rendering 
+      the payload mathematically unreadable without the secret key.
+   4. Man-in-the-Middle Tampering is prevented by Mechanism 3 (16-Byte AEAD Tag), validating 
+      authenticity and detecting bit modification."
+
+🔄 HANDOVER TO PERSON 6:
+  "Finally, [Person 6] will walk us through the software architecture and conclude our 
+   presentation."
+
+
+--------------------------------------------------------------------------------
+👤 PERSON 6: IMPLEMENTATION LEAD & CLOSER
+--------------------------------------------------------------------------------
+SLIDES ASSIGNED: Slide 11 & Slide 12
+
+[SLIDE 11: Codebase Architecture & GUI Implementation]
+• What to say:
+  "Thank you, [Person 5]. Our software implementation adheres to clean coding practices 
+   and modular separation of concerns across four key Python files:
+   - crypto_engine.py: Handles AES-256-GCM encryption/decryption, PBKDF2 key derivation, 
+     and password entropy evaluation heuristics.
+   - stego_engine.py: Implements carrier capacity checking, OpenCV pixel modulation, and 
+     miniaudio PCM sample manipulation.
+   - gui.py: Provides an intuitive Tkinter desktop interface with dedicated 'Encode & Hide' 
+     and 'Extract & Decrypt' tabs, live capacity calculators, side-by-side carrier previews, 
+     and the reactive password strength meter.
+   - main.py: Serves as the clean application entrypoint."
+
+[SLIDE 12: Conclusion]
+• What to say:
+  "Thank you for your time!"
+
+================================================================================
+END OF PRESENTATION SCRIPT
+================================================================================
